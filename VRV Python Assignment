@@ -1,0 +1,65 @@
+from collections import Counter, defaultdict
+
+def load_samplelogs(file_path):
+    try:
+        with open(file_path, 'r') as file:
+            return file.readlines()
+    except OSError as error:
+        print(f"Error reading log file: {error}")
+        return []
+
+def finding_all_endpoint(lines):
+    endpoint_counts = Counter()
+    for line in lines:
+        endpoint = line.split()[6]
+        endpoint_counts[endpoint] += 1
+    return endpoint_counts.most_common(1)[0]
+
+def find_suspicious_ipAddress(lines):
+    failed_attempts = defaultdict(int)
+    flagged_ips = set()
+    failure_limit = 3
+
+    for line in lines:
+        parts = line.split()
+        ip = parts[0]
+        endpoint = parts[6]
+        status_code = parts[8]
+
+        if endpoint == '/login' and status_code == '401':
+            failed_attempts[ip] += 1
+            if failed_attempts[ip] >= failure_limit:
+                flagged_ips.add(ip)
+        else:
+            failed_attempts[ip] = 0
+
+    return list(flagged_ips)
+
+def count_requests_by_ipAddress(log_lines):
+    counts_ip = Counter()
+    for line in log_lines:
+        ip = line.split()[0]
+        counts_ip[ip] += 1
+    return counts_ip.most_common()
+
+def runAndAnalyze():
+    log_file_path = r"C:\Users\91915\Desktop\sample.log"
+    lines = load_samplelogs(log_file_path)
+
+    if not lines:
+        print("No logs to analyze.")
+        return
+
+    counts_ip = count_requests_by_ipAddress(lines)
+    print("IP Request Counts:")
+    print(counts_ip)
+
+    endpoints= finding_all_endpoint(lines)
+    print("\nMost Accessed Endpoint:", endpoints)
+
+    suspicious_ipAddress = find_suspicious_ipAddress(lines)
+    print("\nSuspicious IPs:")
+    print(suspicious_ipAddress)
+
+if _name_ == "_main_":
+    runAndAnalyze()
